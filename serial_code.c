@@ -2,6 +2,7 @@
 #include "linked_list.c"
 #include <string.h>
 
+#include <time.h>
 
 typedef struct graph_node {
     int inc_degree;
@@ -27,7 +28,7 @@ void printMatrix(int matrix[][n_columns]) {
 }
 
 
-void kahn(graph_node *arr) {
+node_t * kahn(graph_node *arr) {
     node_t * S = NULL;
 
     int i;
@@ -63,17 +64,19 @@ void kahn(graph_node *arr) {
     for(i=1;i<=n_columns;i++) {
         if(arr[i].inc_degree != 0) {
             printf("Has cycle!\n");
-            return;
+            return NULL;
         }
     }
 
-    printf("Output:\n");
-    print_list(L);
+    return L;
 }
 
 
 
 int main() {
+
+    double cpu_time_used;
+    clock_t start, end;
 
     FILE* f = fopen("datasets/CSphd.mtx", "r");
 
@@ -87,6 +90,9 @@ int main() {
     }
 
     sscanf(line_buf, "%d %d %d", &n_rows, &n_columns, &n_edges);
+
+
+    start = clock();
 
     graph_node arr[n_columns+1];
 
@@ -105,12 +111,27 @@ int main() {
         arr[node_in].inc_degree++;
     }
 
+    fclose(f);
 
     // print_list(S);
-    kahn(arr);
+    node_t * L = kahn(arr);
     // printMatrix(matrix);
 
+    end = clock();
+
+
+    f = fopen("output.txt", "w");
+
+    while(L != NULL) {
+        fprintf(f, "%d\n", L->val);
+        L = L->next;
+    }
+
     fclose(f);
+
+
+    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("%lf\n",cpu_time_used);
 
     return 0;
 }
