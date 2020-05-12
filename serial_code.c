@@ -41,8 +41,7 @@ node_t * kahn(graph_node *arr) {
 
 
     while(S != NULL) {
-        // int last = remove_last(S); // 5 7 
-        node_t removed = remove_last(S); // 5 7
+        node_t removed = remove_last(S);
         int last = removed.val;
         S = removed.next;
 
@@ -72,9 +71,18 @@ node_t * kahn(graph_node *arr) {
 
 
 
-int main() {
+int main(int argc, char **argv) {
 
-    FILE* f = fopen("dag.txt", "r");
+    FILE* f;
+
+    if (argc > 1) {
+        f = fopen(argv[1], "r");
+    }
+    else {
+        printf("---\nPlease Provide Your Data!\n---\n");
+        return -1;
+    }
+    
 
     char *line_buf = NULL;
     size_t line_buf_size = 0;
@@ -88,7 +96,7 @@ int main() {
     sscanf(line_buf, "%d %d %d", &n_rows, &n_columns, &n_edges);
 
 
-    graph_node arr[n_columns+1];
+    graph_node *arr = (graph_node *) malloc((n_columns+1)*sizeof(graph_node));
 
     int i;
 
@@ -106,7 +114,6 @@ int main() {
 
     fclose(f);
 
-    // print_list(S);
     struct timeval start, end;
     gettimeofday(&start, NULL);
 
@@ -118,17 +125,7 @@ int main() {
     double delta = (end.tv_sec - start.tv_sec) - (start.tv_usec- end.tv_usec)/1E6;
 
     printf("%f\n", delta);
-    // printMatrix(matrix);
 
-
-    f = fopen("output.txt", "w");
-
-    while(L != NULL) {
-        fprintf(f, "%d\n", L->val);
-        L = L->next;
-    }
-
-    fclose(f);
 
     return 0;
 }
