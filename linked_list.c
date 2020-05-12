@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
 typedef struct node {
     int val;
     struct node * next;
@@ -47,7 +48,6 @@ node_t remove_last(node_t * head) {
     /* if there is only one item in the list, remove it */
     if (head->next == NULL) {
         retval = head->val;
-        head = NULL;
         free(head);
         return (node_t) { .val = retval, .next = NULL };
     }

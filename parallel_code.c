@@ -1,108 +1,93 @@
-#include <stdio.h>
 #include "linked_list.c"
 #include <string.h>
 #include <omp.h>
+#include <sys/time.h>
 
-#include <time.h>
 
 typedef struct graph_node {
     int inc_degree;
     node_t * out_nodes;
-
 } graph_node;
 
 
-int not = 2;
+node_t * S = NULL;
+int num_of_threads = 8;
 node_t * L = NULL;
-node_t * S[] = {NULL, NULL};
 int n_rows, n_columns, n_edges; //number of rows and cols of the matrix and the nodes
-
-
-void proccessNode(graph_node * arr) {
-    int tid = omp_get_thread_num();
-
-    if (S[tid] == NULL)
-        return;
-
-    node_t removed = remove_last(S[tid]); // 5 7
-    int last = removed.val;
-    S[tid] = removed.next;
-
-    node_t * out_node;
-    #pragma omp critical
-    {
-    L = push(L, last); // 3
-    out_node = arr[last].out_nodes;
-    printf("last: %d\n", last);
-    print_list(arr[last].out_nodes);
-    printf("S[tid]: %d\n", S[tid]);
-    printf("S: %d\n", S);
-    }
-
-    while(out_node != NULL)
-    {
-        #pragma omp task
-        {
-        // printf("Thread: %d, out_value: %d, degree: %d\n", tid, out_node->val, arr[out_node->val].inc_degree);
-
-        int d;
-
-        #pragma omp critical
-        {
-        arr[out_node->val].inc_degree--;
-        d = arr[out_node->val].inc_degree;
-        }
-
-        if(d == 0) {
-            S[tid] = push(S[tid], out_node->val);
-        }
-
-        // #pragma omp taskwait
-        proccessNode(arr);
-        }
-
-        out_node = out_node->next;
-    }
-
-}
-
+int num_of_tasks = 0;
 
 
 void kahn(graph_node *arr) {
 
-    #pragma omp parallel shared(L, arr)
-    {
-    // node_t * S = NULL;
-
     int i;
-
-    #pragma omp for
     for (i=1;i<=n_columns;i++) {
-        int tid = omp_get_thread_num();
-        // int nthreads = omp_get_num_threads();
-        // printf("Thread: %d / %d | i: %d\n", tid, nthreads, i);
-
         if(arr[i].inc_degree == 0) {
-            S[tid] = push(S[tid], i);
+            S = push(S, i);
         }
     }
 
-    // printf("List of thread #%d:\n", omp_get_thread_num());
-    // print_list(S[omp_get_thread_num()]);
+    #pragma omp parallel shared(arr)
+    {
 
-    proccessNode(arr);
+    #pragma omp single
+    {
+    while (S != NULL)
+    {
+        while(S != NULL) {
 
-    #pragma omp barrier
+            // print_list(S);
+            // printf("---\n");
 
+            node_t removed_node;
+            #pragma omp critical(S_critical)    
+            {
+            removed_node = remove_last(S);
+            S = removed_node.next; /* .next contains the head - in order to use the same struct */
+            }
+            int removed_id = removed_node.val;
+
+            L = push(L, removed_id);
+
+            node_t * out_nodes = arr[removed_id].out_nodes;
+
+            while(out_nodes != NULL)
+            {
+                #pragma omp task
+                {
+                // printf("Thread: %d, in_value: %d, out_value: %d, degree: %d\n", omp_get_thread_num(), removed_id, out_nodes->val, arr[out_nodes->val].inc_degree);
+
+                int d;
+
+                #pragma omp critical(inc_degree_critical)
+                {
+                d = --arr[out_nodes->val].inc_degree;
+                }
+
+                if(d == 0) {
+                    #pragma omp critical(S_critical)
+                    {
+                    S = push(S, out_nodes->val);
+                    }
+                }
+                
+                }
+
+                out_nodes = out_nodes->next;
+            }
+        }
+
+        if(S==NULL)
+        {
+            // printf("Hello1\n");
+            #pragma omp taskwait
+        }
+        // printf("Hello2\n");
+
+        // proccessNode(arr);
     }
-    
-    // printf("%d\n", L);
-    // print_list(L);
-
-    int i;
-    // for(i=1; i<=n_columns; i++) {
-    //     printf("node: %d, degree: %d\n", i , arr[i].inc_degree);
-    // }
+    // implicit barrier
+    }
+    }
 
 
     // check for edges
@@ -113,17 +98,19 @@ void kahn(graph_node *arr) {
         }
     }
 
+    // print_list(L);
 }
 
 
 
+
 int main() {
-    omp_set_num_threads(not);
+    /* setting the number of threads */
+    omp_set_num_threads(num_of_threads);
 
-    double cpu_time_used;
-    clock_t start, end;
+    /* start of data read area */
 
-    FILE* f = fopen("datasets/input.mtx", "r");
+    FILE* f = fopen("dag.txt", "r");
 
     char *line_buf = NULL;
     size_t line_buf_size = 0;
@@ -137,14 +124,13 @@ int main() {
     sscanf(line_buf, "%d %d %d", &n_rows, &n_columns, &n_edges);
 
 
-    start = clock();
-
+    /*
+        arr contains the nodes of the graph
+        arr[0] will not be used
+    */
     graph_node arr[n_columns+1];
 
     int i;
-
-
-	#pragma omp parallel for
     for(i=1;i<=n_rows;i++) {
         arr[i] = (graph_node) { .inc_degree = 0, .out_nodes = NULL };
     }
@@ -157,27 +143,49 @@ int main() {
         arr[node_in].inc_degree++;
     }
 
-
     fclose(f);
+
+
+    /* end of data read area */
+
+
+    /* call of the main function */
+    gettimeofday(&start, NULL);
 
     kahn(arr);
 
-    end = clock();
+    gettimeofday(&end, NULL);
 
 
+    double delta = (end.tv_sec - start.tv_sec) - (start.tv_usec- end.tv_usec)/1E6;
 
-    f = fopen("output1.txt", "w");
+    printf("%f\n", delta);
 
-    while(L != NULL) {
-        fprintf(f, "%d\n", L->val);
-        L = L->next;
-    }
+    // strftime(buffer,30,"%m-%d-%Y  %T.",localtime(&delta));
+    // printf("%s%ld\n",buffer,tv.tv_usec);
 
-    fclose(f);
+    // printf("Final List:\n");
+    // print_list(L);
 
 
-    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    printf("%lf\n",cpu_time_used);
+    // printf("------------------------------");
+
+    // for(i=1;i<=n_rows;i++) {
+    //     printf("i: %d | inc: %d | out:\n", i, arr[i].inc_degree);
+    //     print_list(arr[i].out_nodes);
+    // }
+
+
+    // /* output print */
+    // f = fopen("output1.txt", "w");
+
+    // while(L != NULL) {
+    //     fprintf(f, "%d\n", L->val);
+    //     L = L->next;
+    // }
+
+    // fclose(f);
+
 
     return 0;
 }

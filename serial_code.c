@@ -1,8 +1,7 @@
-#include <stdio.h>
 #include "linked_list.c"
 #include <string.h>
+#include <sys/time.h>
 
-#include <time.h>
 
 typedef struct graph_node {
     int inc_degree;
@@ -75,10 +74,7 @@ node_t * kahn(graph_node *arr) {
 
 int main() {
 
-    double cpu_time_used;
-    clock_t start, end;
-
-    FILE* f = fopen("datasets/CSphd.mtx", "r");
+    FILE* f = fopen("dag.txt", "r");
 
     char *line_buf = NULL;
     size_t line_buf_size = 0;
@@ -92,8 +88,6 @@ int main() {
     sscanf(line_buf, "%d %d %d", &n_rows, &n_columns, &n_edges);
 
 
-    start = clock();
-
     graph_node arr[n_columns+1];
 
     int i;
@@ -105,7 +99,6 @@ int main() {
     for(i=1; i<=n_edges; i++) {
         int node_out, node_in;
         fscanf(f, "%d %d\n", &node_out, &node_in);
-        // matrix[node_out-1][node_in-1] = 1;
 
         arr[node_out].out_nodes = push(arr[node_out].out_nodes, node_in);
         arr[node_in].inc_degree++;
@@ -114,10 +107,18 @@ int main() {
     fclose(f);
 
     // print_list(S);
-    node_t * L = kahn(arr);
-    // printMatrix(matrix);
+    struct timeval start, end;
+    gettimeofday(&start, NULL);
 
-    end = clock();
+    node_t * L = kahn(arr);
+
+    gettimeofday(&end, NULL);
+
+
+    double delta = (end.tv_sec - start.tv_sec) - (start.tv_usec- end.tv_usec)/1E6;
+
+    printf("%f\n", delta);
+    // printMatrix(matrix);
 
 
     f = fopen("output.txt", "w");
@@ -129,12 +130,5 @@ int main() {
 
     fclose(f);
 
-
-    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-    printf("%lf\n",cpu_time_used);
-
     return 0;
 }
-
-
-
