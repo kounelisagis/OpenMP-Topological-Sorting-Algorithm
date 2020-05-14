@@ -11,10 +11,10 @@ typedef struct graph_node {
 
 
 node_t * S = NULL;
-int num_of_threads = 8;
-node_t * L = NULL;
+int num_of_threads = 4;
+int * L = NULL;
+int L_index = 0;
 int n_rows, n_columns, n_edges; //number of rows and cols of the matrix and the nodes
-int num_of_tasks = 0;
 graph_node * arr;
 
 
@@ -22,22 +22,34 @@ void create_task(int node_value) {
 
     #pragma omp task
     {
-    // printf("Thread: %d, in_value: %d, out_value: %d, degree: %d\n", omp_get_thread_num(), removed_id, out_nodes->val, arr[out_nodes->val].inc_degree);
+    // printf("Thread: %d, node value: %d\n", omp_get_thread_num(), node_value);
 
-    int d;
-
-    #pragma omp critical(inc_degree_critical)
+    int index;
+    #pragma omp critical(L_critical)
     {
-    d = --arr[node_value].inc_degree;
+    index = L_index++;
+    // L = push_front(L, node_value);
     }
+    L[index] = node_value;
 
-    if(d == 0) {
-        #pragma omp critical(S_critical)
-        {
-        S = push(S, node_value);
+
+    node_t * out_node;
+    #pragma omp atomic read
+    out_node = arr[node_value].out_nodes;
+
+
+    #pragma omp critical(arr)
+    {
+    for (; out_node != NULL; out_node = out_node->next) {
+        if(--arr[out_node->val].inc_degree == 0) {
+            #pragma omp critical(S_critical)
+            {
+            S = push_front(S, out_node->val);
+            }
         }
     }
-    
+    }
+
     }
 
 }
@@ -45,60 +57,70 @@ void create_task(int node_value) {
 
 void kahn() {
 
-    int i;
-    for (i=1;i<=n_columns;i++) {
+    #pragma omp parallel
+    {
+    
+    #pragma omp single
+    {
+
+    for (int i=1;i<=n_columns;i++) {
         if(arr[i].inc_degree == 0) {
-            S = push(S, i);
+            S = push_front(S, i);
         }
     }
 
-    #pragma omp parallel
-    {
+    int flag = 1;
+    if(S == NULL) {
+        flag = 0;
+    }
 
-    #pragma omp single
-    {
-    while (S != NULL)
+    while(flag)
     {
         node_t removed_node;
         #pragma omp critical(S_critical)
         {
-        removed_node = remove_last(S);
-        S = removed_node.next; /* .next contains the head - in order to use the same struct */
+        removed_node = remove_first(S);
+        S = removed_node.next;  /* .next contains the head - it's used in order to use the same struct */
         }
+
         int removed_id = removed_node.val;
+        create_task(removed_id);
 
-        L = push(L, removed_id);
-
-        node_t * out_nodes = arr[removed_id].out_nodes;
-
-        while(out_nodes != NULL)
+        #pragma omp critical(S_critical)
         {
-            create_task(out_nodes->val);
-            out_nodes = out_nodes->next;
+        if(S == NULL) {
+            flag = 0;
+        }
         }
 
-        if(S == NULL) {
-            #pragma omp taskwait
-        }
         // #pragma omp taskwait
 
+        if(flag == 0) {
+            #pragma omp taskwait
+
+            // #pragma omp critical(S_critical)
+            // {
+            if(S != NULL) {
+                flag = 1;
+            // }
+            }
+        }
+
+    }
     }
 
-    // proccessNode(arr);
-    }
     // implicit barrier
     }
 
-
     // check for edges
-    for(i=1;i<=n_columns;i++) {
+    for(int i=1;i<=n_columns;i++) {
         if(arr[i].inc_degree != 0) {
             printf("Has cycle because of %d which has degree %d!\n", i, arr[i].inc_degree);
             return;
         }
     }
 
-    // print_list(L);
+
 }
 
 
@@ -122,12 +144,10 @@ int main(int argc, char **argv) {
     char *line_buf = NULL;
     size_t line_buf_size = 0;
 
-    getline(&line_buf, &line_buf_size, f);
+    // ignore comment lines
+    while ((getline(&line_buf, &line_buf_size, f)) != -1 && line_buf[0] == '%');
 
-    while(line_buf[0] == '%') {
-        getline(&line_buf, &line_buf_size, f);
-    }
-
+    // read the the first meaningful line
     sscanf(line_buf, "%d %d %d", &n_rows, &n_columns, &n_edges);
 
     /*
@@ -135,6 +155,7 @@ int main(int argc, char **argv) {
         arr[0] will not be used
     */
 
+    L = (int *) malloc((n_columns)*sizeof(int));
     arr = (graph_node *) malloc((n_columns+1)*sizeof(graph_node));
 
     for(int i=1; i<=n_rows; i++) {
@@ -143,14 +164,13 @@ int main(int argc, char **argv) {
 
     for(int i=1; i<=n_edges; i++) {
         int node_out, node_in;
-        fscanf(f, "%d %d\n", &node_out, &node_in);
+        if(fscanf(f, "%d %d\n", &node_out, &node_in) == 2)
 
-        arr[node_out].out_nodes = push(arr[node_out].out_nodes, node_in);
+        arr[node_out].out_nodes = push_front(arr[node_out].out_nodes, node_in);
         arr[node_in].inc_degree++;
     }
 
     fclose(f);
-
 
     /* end of data read area */
 
@@ -165,6 +185,12 @@ int main(int argc, char **argv) {
 
 
     double delta = (end.tv_sec - start.tv_sec) - (start.tv_usec- end.tv_usec)/1E6;
+
+    // print_list(L);
+
+    // for(int i=0;i<n_columns;i++) {
+    //     printf("%d\n", L[i]);
+    // }
 
     printf("%f\n", delta);
 

@@ -18,7 +18,7 @@ void print_list(node_t * head) {
 }
 
 
-node_t * push(node_t * head, int val) {
+node_t * push_back(node_t * head, int val) {
     if (head == NULL) {
         node_t * new_node = (node_t *) malloc(sizeof(node_t));
         new_node->val = val;
@@ -26,7 +26,6 @@ node_t * push(node_t * head, int val) {
         
         return new_node;
     }
-
 
     node_t * current = head;
     while (current->next != NULL) {
@@ -40,6 +39,17 @@ node_t * push(node_t * head, int val) {
 
     return head;
 }
+
+
+
+node_t * push_front(node_t * head, int val) {
+    node_t * new_node = (node_t *) malloc(sizeof(node_t));
+    new_node->val = val;
+    new_node->next = head;
+
+    return new_node;
+}
+
 
 
 node_t remove_last(node_t * head) {

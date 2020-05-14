@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
 
 	srand(time(NULL));
 
-	outfile = fopen("datasets/dag.txt", "w");
+	outfile = fopen("datasets/dag.mtx", "w");
 
 	for (i = 0; i < ranks; i++) {
 		/* New nodes of 'higher' rank than all nodes generated till now.  */
@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
 
 	fclose(outfile);
 
-	sprintf(command, "sed -i '1s/^/%d %d %d\\n/' datasets/dag.txt", nodes, nodes, edges);
+	sprintf(command, "sed -i '1s/^/%d %d %d\\n/' datasets/dag.mtx", nodes, nodes, edges);
 
 	system(command);
 

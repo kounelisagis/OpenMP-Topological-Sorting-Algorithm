@@ -33,7 +33,7 @@ node_t * kahn(graph_node *arr) {
     int i;
     for (i=1;i<=n_columns;i++) {
         if(arr[i].inc_degree == 0) {
-          S = push(S, i);
+          S = push_front(S, i);
         }
     }
 
@@ -45,14 +45,14 @@ node_t * kahn(graph_node *arr) {
         int last = removed.val;
         S = removed.next;
 
-        L = push(L, last); // 3
+        L = push_back(L, last); // 3
 
         node_t * out_node = arr[last].out_nodes;
         while(out_node != NULL)
         {
             arr[out_node->val].inc_degree--;
             if(arr[out_node->val].inc_degree == 0) {
-                S = push(S, out_node->val);
+                S = push_front(S, out_node->val);
             }
             out_node = out_node->next;
         }
@@ -87,12 +87,10 @@ int main(int argc, char **argv) {
     char *line_buf = NULL;
     size_t line_buf_size = 0;
 
-    getline(&line_buf, &line_buf_size, f);
+    // ignore comment lines
+    while ((getline(&line_buf, &line_buf_size, f)) != -1 && line_buf[0] == '%');
 
-    while(line_buf[0] == '%') {
-        getline(&line_buf, &line_buf_size, f);
-    }
-
+    // read the the first meaningful line
     sscanf(line_buf, "%d %d %d", &n_rows, &n_columns, &n_edges);
 
 
@@ -106,9 +104,9 @@ int main(int argc, char **argv) {
 
     for(i=1; i<=n_edges; i++) {
         int node_out, node_in;
-        fscanf(f, "%d %d\n", &node_out, &node_in);
+        if(fscanf(f, "%d %d\n", &node_out, &node_in) == 2)
 
-        arr[node_out].out_nodes = push(arr[node_out].out_nodes, node_in);
+        arr[node_out].out_nodes = push_front(arr[node_out].out_nodes, node_in);
         arr[node_in].inc_degree++;
     }
 
@@ -125,7 +123,6 @@ int main(int argc, char **argv) {
     double delta = (end.tv_sec - start.tv_sec) - (start.tv_usec- end.tv_usec)/1E6;
 
     printf("%f\n", delta);
-
 
     return 0;
 }
