@@ -122,44 +122,29 @@ void kahn() {
 }
 
 
-int main(int argc, char **argv) {
+void initialize(char * filename) {
 
-    FILE* f;
-
-    if (argc > 1) {
-        f = fopen(argv[1], "r");
-    }
-    else {
-        printf("---\nPlease Provide Your Data!\n---\n");
-        return -1;
-    }
-
-    /* setting the number of threads */
     omp_set_num_threads(num_of_threads);
 
-    /* start of data read area */
-
+    FILE* f = fopen(filename, "r");
     char *line_buf = NULL;
     size_t line_buf_size = 0;
 
     // ignore comment lines
     while ((getline(&line_buf, &line_buf_size, f)) != -1 && line_buf[0] == '%');
 
-    // read the the first meaningful line
+    // read the the first meaningful line - rows, columns, edges
     sscanf(line_buf, "%d %d %d", &n_rows, &n_columns, &n_edges);
 
-    /*
-        arr contains the nodes of the graph
-        arr[0] will not be used
-    */
-
-    L = (int *) malloc((n_columns)*sizeof(int));
+    // memory allocation - position 0 is NOT used
     arr = (graph_node *) malloc((n_columns+1)*sizeof(graph_node));
 
-    for(int i=1; i<=n_rows; i++) {
+    // array initialization
+    for(int i=1;i<=n_rows;i++) {
         arr[i] = (graph_node) { .inc_degree = 0, .out_nodes = NULL };
     }
 
+    // graph representation construction
     for(int i=1; i<=n_edges; i++) {
         int node_out, node_in;
         if(fscanf(f, "%d %d\n", &node_out, &node_in) == 2)
@@ -170,27 +155,45 @@ int main(int argc, char **argv) {
 
     fclose(f);
 
-    /* end of data read area */
+    L = (int *) malloc(n_columns*sizeof(int));
+}
 
 
-    /* call of the main function */
+
+int main(int argc, char **argv) {
+
+    if (argc < 3) {
+        printf("---\nPlease Provide Your Data!\n---\n");
+        return -1;
+    }
+
+
+    initialize(argv[1]);
+
+
+
+    // run kahn algorithm while measuring the time
     struct timeval start, end;
     gettimeofday(&start, NULL);
 
-    kahn();
+    kahn(arr);
 
     gettimeofday(&end, NULL);
-
-
-    double delta = (end.tv_sec - start.tv_sec) - (start.tv_usec- end.tv_usec)/1E6;
-
-    // print_list(L);
-
-    // for(int i=0;i<n_columns;i++) {
-    //     printf("%d\n", L[i]);
-    // }
-
+    double delta = (end.tv_sec - start.tv_sec) - (start.tv_usec - end.tv_usec)/1E6;
     printf("%f\n", delta);
+
+
+
+
+    FILE* f = fopen(argv[2], "w");
+
+    for(int i=0;i<L_index;i++) {
+        fprintf(f, "%d\n", L[i]);
+    }
+
+    free(L);
+
+    fclose(f);
 
     return 0;
 }

@@ -10,24 +10,13 @@ typedef struct graph_node {
 } graph_node;
 
 
+node_t * L = NULL;
+graph_node *arr;
 
 int n_rows, n_columns, n_edges; //number of rows and cols of the matrix and the nodes
 
 
-void printMatrix(int matrix[][n_columns]) {
-
-    int i, j;
-
-    for(i=0;i<n_rows;i++) {
-        for(j=0;j<n_columns;j++) {
-            printf("%d\t", matrix[i][j]);
-        }
-        printf("\n");
-    }
-}
-
-
-node_t * kahn(graph_node *arr) {
+void kahn(graph_node *arr) {
     node_t * S = NULL;
 
     int i;
@@ -37,7 +26,6 @@ node_t * kahn(graph_node *arr) {
         }
     }
 
-    node_t * L = NULL;
 
 
     while(S != NULL) {
@@ -62,47 +50,34 @@ node_t * kahn(graph_node *arr) {
     for(i=1;i<=n_columns;i++) {
         if(arr[i].inc_degree != 0) {
             printf("Has cycle!\n");
-            return NULL;
         }
     }
 
-    return L;
 }
 
 
+void initialize(char * filename) {
 
-int main(int argc, char **argv) {
-
-    FILE* f;
-
-    if (argc > 1) {
-        f = fopen(argv[1], "r");
-    }
-    else {
-        printf("---\nPlease Provide Your Data!\n---\n");
-        return -1;
-    }
-    
-
+    FILE* f = fopen(filename, "r");
     char *line_buf = NULL;
     size_t line_buf_size = 0;
 
     // ignore comment lines
     while ((getline(&line_buf, &line_buf_size, f)) != -1 && line_buf[0] == '%');
 
-    // read the the first meaningful line
+    // read the the first meaningful line - rows, columns, edges
     sscanf(line_buf, "%d %d %d", &n_rows, &n_columns, &n_edges);
 
+    // memory allocation - position 0 is NOT used
+    arr = (graph_node *) malloc((n_columns+1)*sizeof(graph_node));
 
-    graph_node *arr = (graph_node *) malloc((n_columns+1)*sizeof(graph_node));
-
-    int i;
-
-    for(i=1;i<=n_rows;i++) {
+    // array initialization
+    for(int i=1;i<=n_rows;i++) {
         arr[i] = (graph_node) { .inc_degree = 0, .out_nodes = NULL };
     }
 
-    for(i=1; i<=n_edges; i++) {
+    // graph representation construction
+    for(int i=1; i<=n_edges; i++) {
         int node_out, node_in;
         if(fscanf(f, "%d %d\n", &node_out, &node_in) == 2)
 
@@ -111,18 +86,52 @@ int main(int argc, char **argv) {
     }
 
     fclose(f);
+}
 
+
+
+int main(int argc, char **argv) {
+
+    if (argc < 3) {
+        printf("---\nPlease Provide Your Data!\n---\n");
+        return -1;
+    }
+
+
+    initialize(argv[1]);
+
+
+
+    // run kahn algorithm while measuring the time
     struct timeval start, end;
     gettimeofday(&start, NULL);
 
-    node_t * L = kahn(arr);
+    kahn(arr);
 
     gettimeofday(&end, NULL);
-
-
-    double delta = (end.tv_sec - start.tv_sec) - (start.tv_usec- end.tv_usec)/1E6;
-
+    double delta = (end.tv_sec - start.tv_sec) - (start.tv_usec - end.tv_usec)/1E6;
     printf("%f\n", delta);
+
+
+
+    // write results and free L
+
+    FILE* f = fopen(argv[2], "w");
+
+    while(L != NULL){
+        fprintf(f, "%d\n", L->val);
+
+        node_t * next = L->next;
+        free(L);
+        L = next;
+    }
+    
+    fclose(f);
+
+
+    // free array memory
+    free(arr);
+
 
     return 0;
 }
