@@ -2,6 +2,7 @@
 #include <string.h>
 #include <omp.h>
 #include <sys/time.h>
+#include <stdbool.h>
 
 
 typedef struct graph_node {
@@ -11,9 +12,9 @@ typedef struct graph_node {
 
 
 node_t * S = NULL;
-int num_of_threads = 4;
-int * L = NULL;
 int L_index = 0;
+int * L = NULL;
+int num_of_threads = 4;
 int n_rows, n_columns, n_edges; //number of rows and cols of the matrix and the nodes
 graph_node * arr;
 
@@ -59,7 +60,7 @@ void kahn() {
 
     #pragma omp parallel
     {
-    
+
     #pragma omp single
     {
 
@@ -69,13 +70,13 @@ void kahn() {
         }
     }
 
-    int flag = 1;
+    bool flag = true;
     if(S == NULL) {
-        flag = 0;
+        flag = false;
     }
 
-    while(flag)
-    {
+    while(flag) {
+
         node_t removed_node;
         #pragma omp critical(S_critical)
         {
@@ -89,25 +90,22 @@ void kahn() {
         #pragma omp critical(S_critical)
         {
         if(S == NULL) {
-            flag = 0;
+            flag = false;
         }
         }
 
-        // #pragma omp taskwait
-
-        if(flag == 0) {
+        if(flag == false) {
             #pragma omp taskwait
 
-            // #pragma omp critical(S_critical)
-            // {
             if(S != NULL) {
-                flag = 1;
-            // }
+                flag = true;
             }
         }
 
-    }
-    }
+    }  // end of while loop
+
+    }  // end of parallel section
+
 
     // implicit barrier
     }

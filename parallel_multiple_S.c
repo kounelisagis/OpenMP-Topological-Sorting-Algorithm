@@ -3,7 +3,7 @@
 #include <omp.h>
 #include <sys/time.h>
 #include <stdbool.h>
-
+#include <unistd.h>
 
 typedef struct graph_node {
     int inc_degree;
@@ -18,11 +18,7 @@ int L_index = 0;
 int n_rows, n_columns, n_edges; //number of rows and cols of the matrix and the nodes
 graph_node * arr;
 
-
-
-bool are_all_null(){
-    for
-}
+int task_waiting = 0;
 
 
 void create_task(int node_value) {
@@ -49,19 +45,23 @@ void create_task(int node_value) {
     {
     for (; out_node != NULL; out_node = out_node->next) {
         if(--arr[out_node->val].inc_degree == 0) {
-            S[tid] = push_front(S[tid], out_node->val);          // 1---->2   4------>2     5------>2
+            S[tid] = push_front(S[tid], out_node->val);    // 1---->2    4------>2    5------>2
+            #pragma omp atomic update
+            task_waiting++;
         }
     }
     }
 
-    }
+    #pragma omp atomic update
+    task_waiting--;
 
+    }
 }
 
 
 void kahn() {
 
-    #pragma omp parallel
+    #pragma omp parallel firstprivate(S)  // S keep the value
     {
 
     int tid = omp_get_thread_num();
@@ -70,45 +70,53 @@ void kahn() {
     for (int i=1;i<=n_columns;i++) {
         if(arr[i].inc_degree == 0) {
             S[tid] = push_front(S[tid], i);
+            #pragma omp atomic update
+            task_waiting++;
         }
     }
-    // barrier
 
 
-    while(S[tid] != NULL)
-    {
-        node_t removed_node;
-        removed_node = remove_first(S[tid]);
-        S[tid] = removed_node.next;  /* .next contains the head - it's used in order to use the same struct */
+    bool flag = true;
 
-        int removed_id = removed_node.val;
-        create_task(removed_id);
+    while(flag) {
+        // printf("Thread: %d, w: %d\n", omp_get_thread_num(), task_waiting);
+    
+        int w;
+        #pragma omp atomic read
+        w = task_waiting;
+        printf("=-=-=-%d\n", w);
 
+        if(S[tid] != NULL) {
+            printf("--%d\n", omp_get_thread_num());
+            print_list(S[tid]);
+            printf("=-===-=-=-=\n");
 
-        // 
-        // if(S[tid] == NULL) {
-        //     int result;
-        //     #pragma omp critical(flag_area)
-        //     {
-        //         #pragma omp taskwait
-        //         flags[tid] = false;
-        //         result = are_all_null();
-        //     }
-            
-        //     while(!result) {
-        //         #pragma omp critical(flag_area)
-        //         {   
-        //             result = are_all_null();
-        //         }
-        //     }
-        // }
-        
+            node_t removed_node = remove_first(S[tid]);
+            S[tid] = removed_node.next;  /* .next contains the head - it's used in order to use the same struct */
+
+            int removed_id = removed_node.val;
+            create_task(removed_id);
+
         }
-        
-    }
+
+        if(S[tid] == NULL) {
+            int w;
+            #pragma omp atomic read
+            w = task_waiting;
+
+            if (w == 0) {
+                flag = false;
+            }
+        }
+
+    }  // end of while loop
+
+
+    }  // end of parallel section
 
     // implicit barrier
-    }
+
+
 
     // check for edges
     for(int i=1;i<=n_columns;i++) {
@@ -117,7 +125,6 @@ void kahn() {
             return;
         }
     }
-
 
 }
 
@@ -154,8 +161,9 @@ int main(int argc, char **argv) {
     */
 
     S = (node_t **) malloc(num_of_threads*sizeof(node_t *));
-    L = (int *) malloc((n_columns)*sizeof(int));
+    L = (int *) malloc(n_columns*sizeof(int));
     arr = (graph_node *) malloc((n_columns+1)*sizeof(graph_node));
+
 
     for(int i=1; i<=n_rows; i++) {
         arr[i] = (graph_node) { .inc_degree = 0, .out_nodes = NULL };
@@ -171,7 +179,7 @@ int main(int argc, char **argv) {
 
     fclose(f);
 
-    /* end of data read area */
+    // /* end of data read area */
 
 
     /* call of the main function */
@@ -187,9 +195,9 @@ int main(int argc, char **argv) {
 
     // print_list(L);
 
-    // for(int i=0;i<n_columns;i++) {
-    //     printf("%d\n", L[i]);
-    // }
+    for(int i=0;i<n_columns;i++) {
+        printf("%d\n", L[i]);
+    }
 
     printf("%f\n", delta);
 
