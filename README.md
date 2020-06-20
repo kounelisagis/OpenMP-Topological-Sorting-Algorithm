@@ -1,4 +1,11 @@
 # Parallel Processing - Project
+CEID, University of Patras
+
+## Team
+Apostolos Kontarinis<br>
+Agisilaos Kounelis<br>
+John Prokopiou<br>
+John Sina
 
 ### How to Compile & Run
 ```
