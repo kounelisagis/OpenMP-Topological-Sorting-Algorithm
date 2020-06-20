@@ -1,4 +1,6 @@
-#include "linked_list.c"
+#include "stack.h"
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
 
@@ -9,8 +11,8 @@ typedef struct graph_node {
 
 } graph_node;
 
-
-node_t * L = NULL;
+int L_index = 0;
+int * L = NULL;
 graph_node *arr;
 
 int n_rows, n_columns, n_edges; //number of rows and cols of the matrix and the nodes
@@ -27,13 +29,12 @@ void kahn(graph_node *arr) {
     }
 
 
-
     while(S != NULL) {
-        node_t removed = remove_last(S);
+        node_t removed = remove_first(S);
         int last = removed.val;
         S = removed.next;
 
-        L = push_back(L, last); // 3
+        L[L_index++] = last;
 
         node_t * out_node = arr[last].out_nodes;
         while(out_node != NULL)
@@ -86,6 +87,8 @@ void initialize(char * filename) {
     }
 
     fclose(f);
+
+    L = (int *) malloc(n_columns*sizeof(int));
 }
 
 
@@ -93,7 +96,7 @@ void initialize(char * filename) {
 int main(int argc, char **argv) {
 
     if (argc < 3) {
-        printf("---\nPlease Provide Your Data!\n---\n");
+        printf("---\nPlease provide your data in the corrent form!\n---\n");
         return -1;
     }
 
@@ -101,29 +104,24 @@ int main(int argc, char **argv) {
     initialize(argv[1]);
 
 
-
     // run kahn algorithm while measuring the time
-    struct timeval start, end;
+    struct timeval start, end, time_diff;
     gettimeofday(&start, NULL);
 
     kahn(arr);
 
     gettimeofday(&end, NULL);
-    double delta = (end.tv_sec - start.tv_sec) - (start.tv_usec - end.tv_usec)/1E6;
-    printf("%f\n", delta);
-
+    timersub(&end, &start, &time_diff);
+    printf("Elapsed time: %ld.%06ld s\n", time_diff.tv_sec, time_diff.tv_usec);
 
 
     // write results and free L
 
     FILE* f = fopen(argv[2], "w");
 
-    while(L != NULL){
-        fprintf(f, "%d\n", L->val);
 
-        node_t * next = L->next;
-        free(L);
-        L = next;
+    for(int i=0; i<n_columns; i++) {
+        fprintf(f, "%d\n", L[i]);
     }
     
     fclose(f);
@@ -131,6 +129,7 @@ int main(int argc, char **argv) {
 
     // free array memory
     free(arr);
+    free(L);
 
 
     return 0;

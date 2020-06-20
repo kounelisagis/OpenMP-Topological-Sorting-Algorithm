@@ -1,6 +1,6 @@
-#include "linked_list.c"
-#include <string.h>
-#include <sys/time.h>
+#include "stack.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 
 typedef struct graph_node {
