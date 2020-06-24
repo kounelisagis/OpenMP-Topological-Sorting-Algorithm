@@ -3,7 +3,7 @@ Parallel implementation of Kahn's topological sort algorithm using OMP<br>
 CEID, University of Patras
 
 ## Diagram
-![Diagram](https://raw.githubusercontent.com/kounelisagis/OpenMP-Topological-Sorting-Algorithm/master/images/diagram.png)
+![Diagram](https://raw.githubusercontent.com/kounelisagis/OpenMP-Topological-Sorting-Algorithm/master/images/diagram.png?token=AIU2MROI6PTO7Y5XZHLKHAS67TXEO)
 
 ## Team
 Apostolos Kontarinis<br>
