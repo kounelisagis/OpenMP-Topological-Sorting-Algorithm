@@ -2,16 +2,16 @@
 Parallel implementation of Kahn's topological sort algorithm using OMP<br>
 CEID, University of Patras
 
-## Diagram
+## Diagram 📈
 ![Diagram](https://raw.githubusercontent.com/kounelisagis/OpenMP-Topological-Sorting-Algorithm/master/images/diagram.png?token=AIU2MROI6PTO7Y5XZHLKHAS67TXEO)
 
-## Team
-Apostolos Kontarinis<br>
-Agisilaos Kounelis<br>
-John Prokopiou<br>
-John Sina
+## Team 👪
+[Apostolos Kontarinis](https://github.com/AposKonti)<br>
+[Agisilaos Kounelis](https://github.com/kounelisagis)<br>
+[Ioannis Prokopiou](https://github.com/GiannisProkopiou)<br>
+[Ioannis Sina](https://github.com/IoannisSina)
 
-### How to Compile & Run
+### How to Compile & Run 🏃
 ```
 gcc -O3 -Wall -o dager dager.c
 ./dager 5000
