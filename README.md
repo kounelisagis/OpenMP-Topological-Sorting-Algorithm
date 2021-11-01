@@ -1,6 +1,6 @@
 # Kahn's Algorithm OpenMP - Parallel Processing Project
 Parallel implementation of Kahn's topological sort algorithm using OMP<br>
-CEID, University of Patras
+[CEID](https://www.ceid.upatras.gr/en), University of Patras
 
 ## Diagram 📈
 ![Diagram](https://raw.githubusercontent.com/kounelisagis/OpenMP-Topological-Sorting-Algorithm/master/images/diagram.png?token=AIU2MROI6PTO7Y5XZHLKHAS67TXEO)
